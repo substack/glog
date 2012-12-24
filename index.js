@@ -4,9 +4,11 @@ var git = require('git-file');
 var through = require('through');
 var JSONStream = require('JSONStream');
 var split = require('split');
+var qs = require('querystring');
 
 var exec = require('child_process').exec;
 var run = require('comandante');
+var OrderedEmitter = require('ordered-emitter');
 
 var fs = require('fs');
 var path = require('path');
@@ -29,7 +31,7 @@ function Legit (repodir) {
 
 var routes = {
     git : /^\/blog\.git\b/,
-    json : /^\/blog\.json(\?|$)/,
+    json : /^\/blog\.json(?:\?(.*)|$)/,
     html : /^\/blog\/([^?]+\.html)(\?|$)/,
     markdown : /^\/blog\/([^?]+\.(?:md|markdown))(\?|$)/
 };
@@ -41,15 +43,25 @@ Legit.prototype.handle = function (req, res) {
     if (routes.git.test(req.url)) {
         self.repo.handle(req, res);
     }
-    else if (routes.json.test(req.url)) {
-        var s = self.list();
-        s.on('error', function (err) {
+    else if (m = routes.json.exec(req.url)) {
+        var params = qs.parse(m[1]);
+        var ls = self.list();
+        ls.on('error', function (err) {
             res.statusCode = 500;
             res.end(String(err));
         });
         
         res.setHeader('content-type', 'application/json');
-        s.pipe(JSONStream.stringify()).pipe(res);
+        
+        if (['html','markdown'].indexOf(params.inline) >= 0) {
+            ls.pipe(self.inline(params.inline))
+                .pipe(JSONStream.stringify())
+                .pipe(res)
+            ;
+        }
+        else {
+            ls.pipe(JSONStream.stringify()).pipe(res);
+        }
     }
     else if (m = routes.html.exec(req.url)) {
         var s = self.read(m[1].replace(/\.html$/, '.markdown'));
@@ -134,4 +146,43 @@ Legit.prototype.list = function () {
         }
     });
     return tr;
+};
+
+Legit.prototype.inline = function (format) {
+    var self = this;
+    var em = new OrderedEmitter;
+    em.on('data', function (doc) {
+        tr.emit('data', doc.value);
+        if (--pending === 0 && ended) {
+            tr.emit('end');
+        }
+    });
+    var order = 0;
+    var pending = 0;
+    var ended = false;
+    
+    var tr = through(write, end);
+    return tr;
+    
+    function write (doc) {
+        var s = self.read(doc.file);
+        var n = order ++;
+        pending ++;
+        
+        var data = '';
+        s.on('data', function (buf) { data += buf });
+        s.on('end', function () {
+            doc.body = ({
+                html : markdown.parse,
+                markdown : String
+            }[format] || String)(data);
+            
+            em.emit('data', { order : n, value : doc });
+        });
+    }
+    
+    function end () {
+        ended = true;
+        if (pending === 0) tr.emit('end');
+    }
 };
