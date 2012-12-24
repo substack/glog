@@ -14,17 +14,17 @@ var fs = require('fs');
 var path = require('path');
 
 module.exports = function (repodir) {
-    var legit = new Legit(repodir);
-    var handle = legit.handle.bind(legit);
+    var glog = new Glog(repodir);
+    var handle = glog.handle.bind(glog);
     
-    Object.keys(Legit.prototype).forEach(function (key) {
-        handle[key] = Legit.prototype[key].bind(legit);
+    Object.keys(Glog.prototype).forEach(function (key) {
+        handle[key] = Glog.prototype[key].bind(glog);
     });
     return handle;
 };
 
-function Legit (repodir) {
-    if (!(this instanceof Legit)) return new Legit(repodir);
+function Glog (repodir) {
+    if (!(this instanceof Glog)) return new Glog(repodir);
     this.repo = pushover(repodir);
     this.repodir = repodir + '/blog.git';
 }
@@ -36,7 +36,7 @@ var routes = {
     markdown : /^\/blog\/([^?]+\.(?:md|markdown))(\?|$)/
 };
 
-Legit.prototype.handle = function (req, res) {
+Glog.prototype.handle = function (req, res) {
     var self = this;
     var m;
     
@@ -94,17 +94,17 @@ Legit.prototype.handle = function (req, res) {
     }
 };
 
-Legit.prototype.test = function (url) {
+Glog.prototype.test = function (url) {
     return Object.keys(routes).some(function (key) {
         return routes[key].test(url);
     });
 };
 
-Legit.prototype.read = function (file) {
+Glog.prototype.read = function (file) {
     return git.read('HEAD', file, { cwd : this.repodir });
 };
 
-Legit.prototype.list = function () {
+Glog.prototype.list = function () {
     var opts = { cwd : this.repodir };
     exec('git tag -l', opts, function (err, stdout, stderr) {
         if (err) return tr.emit('error', err);
@@ -148,7 +148,7 @@ Legit.prototype.list = function () {
     return tr;
 };
 
-Legit.prototype.inline = function (format) {
+Glog.prototype.inline = function (format) {
     var self = this;
     var em = new OrderedEmitter;
     em.on('data', function (doc) {

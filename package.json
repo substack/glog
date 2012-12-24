@@ -1,10 +1,10 @@
 {
-    "name" : "legit",
+    "name" : "glog",
     "version" : "0.0.0",
     "description" : "git push blog server",
     "main" : "index.js",
     "bin" : {
-        "legit": "bin/cmd.js"
+        "glog": "bin/cmd.js"
     },
     "dependencies" : {
         "pushover" : "~0.1.5",
@@ -19,9 +19,9 @@
     },
     "repository" : {
         "type" : "git",
-        "url" : "git://github.com/substack/legit.git"
+        "url" : "git://github.com/substack/glog.git"
     },
-    "homepage" : "https://github.com/substack/legit",
+    "homepage" : "https://github.com/substack/glog",
     "keywords" : [
         "git",
         "blog",
