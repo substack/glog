@@ -54,6 +54,56 @@ $ git push publish master --tags
 
 Now the content should be live on your blog, yay!
 
+# http api
+
+When you attach a glog handler to your server, these routes are installed:
+
+## /blog.git
+
+Used by [pushover](http://github.com/substack/pushover) to make `git push`
+deploys work. You can set this as a git remote and interact with it like any
+other git endpoint.
+
+Annotated git tags with the filename as the tag name are used to store title
+text, publish date, and which files are "published".
+
+## /blog.json
+
+Return a streaming json array of article metadata for all articles.
+
+Optionally, you can set these query string parameters:
+
+* inline - include the article content bodies along with the document metadata
+as `'html'` or `'markdown'`
+
+example output:
+
+```
+$ curl localhost:5000/blog.json
+[
+{"file":"robot.markdown","author":"James Halliday","email":"mail@substack.net","date":"Mon Dec 24 15:31:27 2012 -0800","title":"robots are pretty great","commit":"81c62aa62b6770a2f6bdf6865d393daf05930b4a"}
+,
+{"file":"test.markdown","author":"James Halliday","email":"mail@substack.net","date":"Mon Dec 24 04:31:53 2012 -0800","title":"testing title","commit":"2a516000d239bbfcf7cdbb4b5acf09486bdf9586"}
+]
+```
+
+```
+ $ curl localhost:5000/blog.json?inline=html
+[
+{"file":"robot.markdown","author":"James Halliday","email":"mail@substack.net","date":"Mon Dec 24 15:31:27 2012 -0800","title":"robots are pretty great","commit":"81c62aa62b6770a2f6bdf6865d393daf05930b4a","body":"<h1>robots!</h1>\n\n<p>Pretty great basically.</p>"}
+,
+{"file":"test.markdown","author":"James Halliday","email":"mail@substack.net","date":"Mon Dec 24 04:31:53 2012 -0800","title":"testing title","commit":"2a516000d239bbfcf7cdbb4b5acf09486bdf9586","body":"<h1>title text</h1>\n\n<p>beep boop.</p>\n\n<p><em>rawr</em></p>"}
+]
+```
+
+## /blog/$FILE.markdown
+
+Fetch a source document $FILE as markdown.
+
+## /blog/$FILE.html
+
+Fetch a source document $FILE.markdown rendered as html.
+
 # methods
 
 ```  js
