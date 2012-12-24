@@ -1,0 +1,36 @@
+{
+    "name" : "legit",
+    "version" : "0.0.0",
+    "description" : "git push blog server",
+    "main" : "index.js",
+    "bin" : {
+        "legit": "bin/cmd.js"
+    },
+    "dependencies" : {
+        "pushover" : "~0.1.5",
+        "github-flavored-markdown" : "~1.0.1",
+        "git-file" : "~0.0.1",
+        "through" : "~2.1.0",
+        "JSONStream" : "~0.4.3",
+        "split" : "~0.1.0",
+        "comandante" : "~0.0.1",
+        "ordered-emitter" : "~0.1.0",
+        "ecstatic" : "~0.3.0",
+    },
+    "repository" : {
+        "type" : "git",
+        "url" : "git://github.com/substack/legit.git"
+    },
+    "homepage" : "https://github.com/substack/legit",
+    "keywords" : [
+        "git",
+        "blog",
+        "http"
+    ],
+    "author" : {
+        "name" : "James Halliday",
+        "email" : "mail@substack.net",
+        "url" : "http://substack.net"
+    },
+    "license" : "MIT"
+}

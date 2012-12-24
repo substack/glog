@@ -1,6 +1,9 @@
 # legit
 
-self-contained git push blog server with public key crypto
+git push blog server
 
-```
-```
+# example
+
+# usage
+
+# meethods
