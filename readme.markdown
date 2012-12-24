@@ -6,6 +6,27 @@ note: auth is not yet baked in
 
 # example
 
+## custom http server
+
+You can whip up a custom http server or use the default server that glog comes
+with using `glog server`. Here's what a custom server could look like:
+
+``` js
+var http = require('http');
+var glog = require('glog')(__dirname + '/repo');
+var ecstatic = require('ecstatic')(__dirname + '/static');
+
+var server = http.createServer(function (req, res) {
+    if (glog.test(req.url)) {
+        glog(req, res);
+    }
+    else ecstatic(req, res);
+});
+server.listen(5000);
+```
+
+## git push glog
+
 First run the glog server (or your own server using the glog api),
 storing blog repo data in `~/data/blog-repo`:
 
