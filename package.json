@@ -15,7 +15,8 @@
         "split" : "~0.1.0",
         "comandante" : "~0.0.1",
         "ordered-emitter" : "~0.1.0",
-        "ecstatic" : "~0.3.0"
+        "ecstatic" : "~0.3.0",
+        "optimist" : "~0.3.5
     },
     "repository" : {
         "type" : "git",
