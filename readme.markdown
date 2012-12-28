@@ -48,7 +48,7 @@ and push to the git blog server:
 
 ```
 $ echo -e '# beep\nboop' > robot.markdown
-$ git add . && git commit -m 'initial'
+$ git add *.markdown && git commit -m 'initial'
 $ glog publish robot.markdown 'this is the title text'
 $ git push publish master --tags
 ```
