@@ -106,7 +106,15 @@ Glog.prototype.read = function (file) {
 
 Glog.prototype.list = function () {
     var opts = { cwd : this.repodir };
-    exec('git tag -l', opts, function (err, stdout, stderr) {
+    
+    fs.stat(this.repodir, function (err, stat) {
+        if (err && err.code === 'ENOENT') {
+            tr.emit('end');
+        }
+        else exec('git tag -l', opts, ontag);
+    });
+    
+    function ontag (err, stdout, stderr) {
         if (err) return tr.emit('error', err);
         
         var args = [ 'show' ]
@@ -115,7 +123,7 @@ Glog.prototype.list = function () {
             .filter(Boolean)
         ;
         run('git', args, opts).pipe(split()).pipe(tr);
-    });
+    }
     
     var tag = null;
     var tr = through(function (line) {
