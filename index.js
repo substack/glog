@@ -1,5 +1,5 @@
 var pushover = require('pushover');
-var markdown = require('github-flavored-markdown');
+var markdown = require('marked');
 var git = require('git-file');
 var through = require('through');
 var JSONStream = require('JSONStream');
