@@ -1,9 +1,5 @@
 usage:
 
-  glog server PORT REPODIR
-
-    Create a glog server listening on PORT and storing repos in REPODIR.
-
   glog publish FILE "TITLE..."
 
     Publish FILE with TITLE by creating an annotated tag.

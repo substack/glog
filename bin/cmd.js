@@ -12,12 +12,8 @@ if (cmd === 'publish') {
     console.log('# git tag ' + file + ' -m ' + JSON.stringify(title));
     spawn('git', [ 'tag', file, '-m', title ], { stdio : [ 0, 1, 2 ] });
 }
-else if (cmd === 'server') {
-    var args = [ path.join(__dirname, '..', 'server.js') ]
-        .concat(argv._.slice(1))
-    ;
-    spawn(process.execPath, args, { stdio : [ 0, 1, 2 ] });
-}
 else {
-    fs.createReadStream(__dirname + '/usage.txt').pipe(process.stdout);
+    fs.createReadStream(path.join(__dirname, '/usage.txt'))
+        .pipe(process.stdout)
+    ;
 }

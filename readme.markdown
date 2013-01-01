@@ -8,8 +8,7 @@ note: auth is not yet baked in
 
 ## custom http server
 
-You can whip up a custom http server or use the default server that glog comes
-with using `glog server`. Here's what a custom server could look like:
+Here's what a custom server could look like storing repository data in `./repo`:
 
 ``` js
 var http = require('http');
@@ -27,11 +26,10 @@ server.listen(5000);
 
 ## git push glog
 
-First run the glog server (or your own server using the glog api),
-storing blog repo data in `~/data/blog-repo`:
+First run your http server:
 
 ```
-$ glog server 5000 ~/data/blog-repo
+$ node server.js
 ```
 
 Now create a new git repo for articles and set up the remote to point at your
@@ -140,10 +138,6 @@ Return whether or not to defer to `blog` for handling routes.
 
 ```
 usage:
-
-  glog server PORT REPODIR
-
-    Create a glog server listening on PORT and storing repos in REPODIR.
 
   glog publish FILE "TITLE..."
 

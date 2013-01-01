@@ -1,6 +1,7 @@
 var http = require('http');
-var glog = require('./')(process.argv[3]);
-var ecstatic = require('ecstatic')(__dirname + '/static');
+var path = require('path');
+var glog = require('../')(process.argv[3]);
+var ecstatic = require('ecstatic')(path.join(__dirname, '..', 'static'));
 
 var server = http.createServer(function (req, res) {
     if (glog.test(req.url)) {
