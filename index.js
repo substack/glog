@@ -125,16 +125,26 @@ Glog.prototype.list = function () {
         run('git', args, opts).pipe(split()).pipe(tr);
     }
     
-    var tag = null;
-    var tr = through(function (line) {
+    var tag = null, commit = null;
+    var tr = through(write);
+    return tr;
+    
+    function write (line) {
         var m;
         if (m = /^tag\s+(.+\.(?:markdown|md|html))/.exec(line)) {
             tag = { file : m[1] };
+            if (commit) tag.commit = commit;
         }
-        else if (!tag) return;
+        else if (m = /^commit\s+(\S+)/.exec(line)) {
+            commit = m[1];
+            if (tag) emitTag();
+        }
+        
+        if (!tag) return;
         
         if (tag.date && !tag.title && /\S/.test(line)) {
             tag.title = line;
+            if (tag && commit) emitTag();
         }
         else if (m = /^Tagger:\s+(.+)/.exec(line)) {
             var s = /(.+) <(.+?)>/.exec(m[1]);
@@ -147,13 +157,14 @@ Glog.prototype.list = function () {
         else if (m = /^Date:\s+(.+)/.exec(line)) {
             tag.date = m[1];
         }
-        else if (m = /^commit\s+(\S+)/.exec(line)) {
-            tag.commit = m[1];
-            this.emit('data', tag);
-            tag = null;
-        }
-    });
-    return tr;
+    }
+    
+    function emitTag () {
+        tag.commit = commit;
+        tr.emit('data', tag);
+        tag = null;
+        commit = null;
+    }
 };
 
 Glog.prototype.inline = function (format) {
