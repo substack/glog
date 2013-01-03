@@ -18,19 +18,12 @@ if (cmd === 'publish') {
 }
 else if (cmd === 'useradd') {
     var user = argv._[1] || process.env.USER;
-    var tmpdir = path.join(
-        process.env.TEMP || process.env.TEMPDIR
-        || process.env.TEMPDIR || '/tmp',
-        randomHex()
-    );
+    var tmpdir = createTempDir();
     var dir = path.join(tmpdir, 'auth');
-    mkdirp.sync(tmpdir);
     
-    exec('git remote -v', function (err, stdout, stderr) {
+    fetchAuthRemote(function (err, remote) {
         if (err) return error(err);
-        var m = /(https?:\/\/\S+\/blog\.git)\b/.exec(stdout);
-        if (!m) return error('no blog.git http remote');
-        var remote = m[1].replace(/\/blog.git$/, '/auth.git');
+        
         var ps = spawn('git', [ 'clone', remote ], { cwd : tmpdir });
         ps.on('exit', function (code) {
             if (code === 0) return userAdd(user, remote);
@@ -52,9 +45,9 @@ else if (cmd === 'useradd') {
             var src = fs.readFileSync(userfile);
             users = JSON.parse(src);
         }
-        users[user] = randomHex();
+        users[user] = { token : randomHex() };
         fs.writeFileSync(userfile, JSON.stringify(users, null, 2));
-        addAuthFile(user, users[user], remote);
+        addAuthFile(user, users[user].token, remote);
     }
     
     function addAuthFile (user, token, remote) {
@@ -86,7 +79,7 @@ else if (cmd === 'useradd') {
             + '@' + u.host + u.pathname.replace(/auth.git$/, 'blog.git')
         ;
         
-        var ps = spawn('git', [ 'push', 'origin', 'master' ]);
+        var ps = spawn('git', [ 'push', remote, 'master' ], { cwd : dir });
         ps.on('exit', function (code) {
             if (code !== 0) return error('exit code ' + code
                 + ' pushing to the origin');
@@ -97,6 +90,24 @@ else if (cmd === 'useradd') {
             ].join('\n'));
         });
     }
+}
+else if (cmd === 'users') {
+    var tmpdir = createTempDir();
+    var authdir = path.join(tmpdir, 'auth');
+    
+    fetchAuthRemote(function (err, remote) {
+        if (err) return error(err);
+        
+        var ps = spawn('git', [ 'clone', remote ], { cwd : tmpdir });
+        ps.on('exit', function (code) {
+            if (code === 0) return console.log('{}');
+            var userfile = path.join(authdir, 'users.json');
+            if (!fs.existsSync(userfile)) {
+                return console.log('{}');
+            }
+            console.log(fs.readFileSync(userfile));
+        });
+    });
 }
 else {
     fs.createReadStream(path.join(__dirname, '/usage.txt'))
@@ -111,4 +122,29 @@ function error (msg) {
 
 function randomHex () {
     return Math.floor(Math.random() * Math.pow(16, 8)).toString(16);
+}
+
+function fetchAuthRemote (cb) {
+    if (argv.remote) return cb(
+        null, 
+        argv.remote.replace(/\/blog\.git$/, '/auth.git')
+    );
+    
+    exec('git remote -v', function (err, stdout, stderr) {
+        if (err) return cb(err);
+        var m = /(https?:\/\/\S+\/blog\.git)\b/.exec(stdout);
+        if (!m) return cb('no blog.git http remote');
+        var remote = m[1].replace(/\/blog\.git$/, '/auth.git');
+        cb(null, remote);
+    });
+}
+
+function createTempDir () {
+    var dir = path.join(
+        process.env.TEMP || process.env.TEMPDIR
+        || process.env.TEMPDIR || '/tmp',
+        randomHex()
+    );
+    mkdirp.sync(dir);
+    return dir;
 }
