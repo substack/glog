@@ -91,7 +91,7 @@ else if (cmd === 'useradd') {
         });
     }
 }
-else if (cmd === 'users') {
+else if (cmd === 'users' || cmd === 'token') {
     var tmpdir = createTempDir();
     var authdir = path.join(tmpdir, 'auth');
     
@@ -106,7 +106,19 @@ else if (cmd === 'users') {
                 return console.log('{}');
             }
             var users = JSON.parse(fs.readFileSync(userfile));
-            console.log(Object.keys(users).join('\n'));
+            if (cmd === 'users') {
+                console.log(Object.keys(users).join('\n'));
+            }
+            else if (cmd === 'token' && !argv._[1]) {
+                error('usage: glog token USER');
+            }
+            else if (cmd === 'token') {
+                var user = argv._[1];
+                if (!users[user]) {
+                    error('no such user ' + user);
+                }
+                else console.log(users[user].token)
+            }
         });
     });
 }
