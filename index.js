@@ -35,26 +35,48 @@ function Glog (repodir) {
     self.authdir = repodir + '/auth.git';
     
     self.repo.on('push', function (push) {
-        var m = /^basic (\S+)/i.exec(push.headers.authorization);
-        var s = m && Buffer(m[1], 'base64').toString();
-        var user = m && s.split(':')[0];
-        var pass = m && s.split(':')[1];
+        if (push.repo === 'auth.git') {
+            push.once('accept', function () {
+                self._userCache = null;
+            });
+        }
+        requireAuth(push);
+    });
+    
+    self.repo.on('fetch', function (dup) {
+        if (dup.repo === 'auth.git') requireAuth(dup)
+        else dup.accept()
+    });
+    
+    function requireAuth (dup) {
+        var auth = authFor(dup);
+        dup.once('reject', function () {
+            dup.setHeader('www-authenticate', 'basic');
+            dup.end('ACCESS DENIED');
+        });
         
         self._getUsers(function (err, users) {
-            if (err) return push.reject();
+            if (err) return dup.reject(500);
             if (!users) {
-                if (push.repo === 'auth.git') self._userCache = null;
-                return push.accept(); // admin party
+                return dup.accept(); // admin party
             }
-            if (!m) return push.reject();
+            if (!auth) return dup.reject(401);
             
-            if (users[user] === pass) {
-                if (push.repo === 'auth.git') self._userCache = null;
-                push.accept();
-            }
-            else push.reject();
+            if (!users[auth.user]) return dup.reject(401);
+            if (users[auth.user].token !== auth.pass) return dup.reject(401);
+            dup.accept();
         });
-    });
+    }
+}
+
+function authFor (req) {
+    var m = /^basic (\S+)/i.exec(req.headers.authorization);
+    if (!m) return undefined;
+    var s = Buffer(m[1], 'base64').toString();
+    return {
+        user: s.split(':')[0],
+        pass: s.split(':')[1]
+    };
 }
 
 inherits(Glog, EventEmitter);
