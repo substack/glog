@@ -100,12 +100,13 @@ else if (cmd === 'users') {
         
         var ps = spawn('git', [ 'clone', remote ], { cwd : tmpdir });
         ps.on('exit', function (code) {
-            if (code === 0) return console.log('{}');
+            if (code !== 0) return console.log('{}');
             var userfile = path.join(authdir, 'users.json');
             if (!fs.existsSync(userfile)) {
                 return console.log('{}');
             }
-            console.log(fs.readFileSync(userfile));
+            var users = JSON.parse(fs.readFileSync(userfile));
+            console.log(Object.keys(users).join('\n'));
         });
     });
 }
