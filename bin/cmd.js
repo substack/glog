@@ -40,6 +40,19 @@ else if (cmd === 'useradd') {
     });
     t.on('error', error);
 }
+else if (cmd === 'userdel') {
+    var user = argv._[1] || process.env.USER;
+    var t = authTransform(function (users, remote) {
+        if (!users[user]) error('no such user ' + user);
+        delete users[user];
+        return users;
+    });
+    t.on('error', error);
+    
+    t.on('exit', function () {
+        console.log('deleted user ' + user);
+    });
+}
 else if (cmd === 'users' || cmd === 'token') {
     var tmpdir = createTempDir();
     var authdir = path.join(tmpdir, 'auth');
