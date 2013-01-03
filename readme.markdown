@@ -2,8 +2,6 @@
 
 git push blog server
 
-note: auth is not yet baked in
-
 # example
 
 ## custom http server
