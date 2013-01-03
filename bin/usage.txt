@@ -4,3 +4,7 @@ usage:
 
     Publish FILE with TITLE by creating an annotated tag.
 
+  glog auth USER
+
+    Generate an auth token for USER to use as a git remote.
+

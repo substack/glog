@@ -12,6 +12,9 @@ if (cmd === 'publish') {
     console.log('# git tag ' + file + ' -m ' + JSON.stringify(title));
     spawn('git', [ 'tag', file, '-m', title ], { stdio : [ 0, 1, 2 ] });
 }
+else if (cmd === 'auth') {
+    
+}
 else {
     fs.createReadStream(path.join(__dirname, '/usage.txt'))
         .pipe(process.stdout)

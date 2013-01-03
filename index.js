@@ -10,6 +10,9 @@ var exec = require('child_process').exec;
 var run = require('comandante');
 var OrderedEmitter = require('ordered-emitter');
 
+var inherits = require('inherits');
+var EventEmitter = require('events').EventEmitter;
+
 var fs = require('fs');
 var path = require('path');
 
@@ -25,22 +28,70 @@ module.exports = function (repodir) {
 
 function Glog (repodir) {
     if (!(this instanceof Glog)) return new Glog(repodir);
-    this.repo = pushover(repodir);
-    this.repodir = repodir + '/blog.git';
+    var self = this;
+    
+    self.repo = pushover(repodir);
+    self.repodir = repodir + '/blog.git';
+    self.authdir = repodir + '/auth.git';
+    
+    self.repo.on('push', function (push) {
+        var m = /^basic (\S+)/i.exec(push.headers.authorization);
+        var s = m && Buffer(m[1], 'base64').toString();
+        var user = m && s.split(':')[0];
+        var pass = m && s.split(':')[1];
+        
+        self._getUsers(function (err, users) {
+            if (err) return push.reject();
+            if (!users) {
+                if (push.repo === 'auth.git') self._userCache = null;
+                return push.accept(); // admin party
+            }
+            if (!m) return push.reject();
+            
+            if (users[user] === pass) {
+                if (push.repo === 'auth.git') self._userCache = null;
+                push.accept();
+            }
+            else push.reject();
+        });
+    });
 }
+
+inherits(Glog, EventEmitter);
 
 var routes = {
     git : /^\/blog\.git\b/,
+    auth : /^\/auth\.git\b/,
     json : /^\/blog\.json(?:\?(.*)|$)/,
     html : /^\/blog\/([^?]+\.html)(\?|$)/,
     markdown : /^\/blog\/([^?]+\.(?:md|markdown))(\?|$)/
+};
+
+Glog.prototype._getUsers = function (cb) {
+    var self = this;
+    if (self._userCache) return cb(null, self._userCache);
+    
+    var us = git.read('HEAD', 'users.json', { cwd : self.authdir });
+    us.on('error', function () { cb(null, null) });
+    
+    var data = '';
+    us.on('data', function (buf) { data += buf });
+    us.on('end', function () {
+        if (data === '') return cb(null, null)
+        
+        try { var users = JSON.parse(data) }
+        catch (err) { return cb(err) }
+        
+        self._userCache = users;
+        cb(null, users);
+    });
 };
 
 Glog.prototype.handle = function (req, res) {
     var self = this;
     var m;
     
-    if (routes.git.test(req.url)) {
+    if (routes.git.test(req.url) || routes.auth.test(req.url)) {
         self.repo.handle(req, res);
     }
     else if (m = routes.json.exec(req.url)) {
