@@ -143,6 +143,22 @@ usage:
 
     Publish FILE with TITLE by creating an annotated tag.
 
+  glog users
+
+    Show the list of glog users.
+
+  glog useradd USER
+
+    Generate an auth token for USER to use as a git remote.
+
+  glog userdel USER
+
+    Delete a USER.
+
+  glog token USER
+
+    Show the git remote token for USER.
+
 ```
 
 # install
