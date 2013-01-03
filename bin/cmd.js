@@ -5,6 +5,7 @@ var spawn = require('child_process').spawn;
 var exec = require('child_process').exec;
 var run = require('comandante');
 var url = require('url');
+var EventEmitter = require('events').EventEmitter;
 
 var argv = require('optimist').argv;
 var cmd = argv._[0];
@@ -18,78 +19,26 @@ if (cmd === 'publish') {
 }
 else if (cmd === 'useradd') {
     var user = argv._[1] || process.env.USER;
-    var tmpdir = createTempDir();
-    var dir = path.join(tmpdir, 'auth');
-    
-    fetchAuthRemote(function (err, remote) {
-        if (err) return error(err);
+    var t = authTransform(function (users, remote) {
+        var token = randomHex();
+        users[user] = { token : token };
         
-        var ps = spawn('git', [ 'clone', remote ], { cwd : tmpdir });
-        ps.on('exit', function (code) {
-            if (code === 0) return userAdd(user, remote);
-            mkdirp.sync(dir);
-            var ps = spawn('git', [ 'init' ], { cwd : dir });
-            ps.on('exit', function (code) {
-                if (code !== 0) return error('exit code ' + code
-                    + ' while doing git init'
-                );
-                userAdd(user, remote);
-            });
-        });
-    });
-    
-    function userAdd (user, remote) {
-        var userfile = path.join(dir, 'users.json');
-        var users = {};
-        if (fs.existsSync(userfile)) {
-            var src = fs.readFileSync(userfile);
-            users = JSON.parse(src);
-        }
-        users[user] = { token : randomHex() };
-        fs.writeFileSync(userfile, JSON.stringify(users, null, 2));
-        addAuthFile(user, users[user].token, remote);
-    }
-    
-    function addAuthFile (user, token, remote) {
-        var ps = spawn('git', [ 'add', 'users.json' ], { cwd : dir });
-        ps.on('exit', function (code) {
-            if (code !== 0) return error(
-                'exit code ' + code + ' while adding users.json'
-            );
-            commitAuthFile(user, token, remote);
-        });
-    }
-    
-    function commitAuthFile (user, token, remote) {
-        var ps = spawn('git',
-            [ 'commit', '-m', 'added user ' + user ],
-            { cwd : dir }
-        );
-        ps.on('exit', function (code) {
-            if (code !== 0) return error(
-                'exit code ' + code + ' while committing'
-            );
-            pushAuthFile(user, token, remote);
-        });
-    }
-    
-    function pushAuthFile (user, token, remote) {
         var u = url.parse(remote);
         var uri = u.protocol + '//' + user + ':' + token
             + '@' + u.host + u.pathname.replace(/auth.git$/, 'blog.git')
         ;
         
-        var ps = spawn('git', [ 'push', remote, 'master' ], { cwd : dir });
-        ps.on('exit', function (code) {
-            if (code !== 0) return error('exit code ' + code
-                + ' pushing to the origin');
+        t.on('exit', function () {
             console.log([
                 'Created user ' + user,
                 'To publish as this user add this remote:',
                 '', uri, ''
             ].join('\n'));
         });
-    }
+        
+        return users;
+    });
+    t.on('error', error);
 }
 else if (cmd === 'users' || cmd === 'token') {
     var tmpdir = createTempDir();
@@ -160,4 +109,74 @@ function createTempDir () {
     );
     mkdirp.sync(dir);
     return dir;
+}
+
+function authTransform (cb) {
+    var tmpdir = createTempDir();
+    var dir = path.join(tmpdir, 'auth');
+    var self = new EventEmitter;
+    
+    fetchAuthRemote(function (err, remote) {
+        if (err) return self.emit('error', err);
+        
+        var ps = spawn('git', [ 'clone', remote ], { cwd : tmpdir });
+        ps.on('exit', function (code) {
+            if (code === 0) return userMod(remote);
+            mkdirp.sync(dir);
+            var ps = spawn('git', [ 'init' ], { cwd : dir });
+            ps.on('exit', function (code) {
+                if (code !== 0) return self.emit('error', 
+                    'exit code ' + code + ' while doing git init'
+                );
+                userMod(remote);
+            });
+        });
+    });
+    
+    return self;
+    
+    function userMod (remote) {
+        var userfile = path.join(dir, 'users.json');
+        var users = {};
+        if (fs.existsSync(userfile)) {
+            var src = fs.readFileSync(userfile);
+            users = JSON.parse(src);
+        }
+        users = cb(users, remote);
+        fs.writeFileSync(userfile, JSON.stringify(users, null, 2));
+        addAuthFile(remote);
+    }
+    
+    function addAuthFile (remote) {
+        var ps = spawn('git', [ 'add', 'users.json' ], { cwd : dir });
+        ps.on('exit', function (code) {
+            if (code !== 0) return self.emit('error',
+                'exit code ' + code + ' while adding users.json'
+            );
+            commitAuthFile(remote);
+        });
+    }
+    
+    function commitAuthFile (remote) {
+        var ps = spawn('git',
+            [ 'commit', '-m', 'modified users.json' ],
+            { cwd : dir }
+        );
+        ps.on('exit', function (code) {
+            if (code !== 0) return self.emit('error',
+                'exit code ' + code + ' while committing'
+            );
+            pushAuthFile(remote);
+        });
+    }
+    
+    function pushAuthFile (remote) {
+        var ps = spawn('git', [ 'push', remote, 'master' ], { cwd : dir });
+        ps.on('exit', function (code) {
+            if (code !== 0) return self.emit('error',
+                'exit code ' + code + ' pushing to the origin'
+            );
+            self.emit('exit', code);
+        });
+    }
 }
