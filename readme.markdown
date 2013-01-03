@@ -53,6 +53,36 @@ $ git push publish master --tags
 
 Now the content should be live on your blog, yay!
 
+## authenticating glog
+
+Continuing from the previous example, we'll add user permissions to our glog
+server.
+
+To create a user once you've set the `git remote`, from your blog repo do:
+
+```
+$ glog useradd substack
+Created user substack
+To publish as this user add this remote:
+
+http://substack:42aee89a@localhost:5000/blog.git
+```
+
+If you don't already have a remote for the blog repo, pass `--remote=REMOTE` to
+the `glog useradd` command.
+
+Once users have been configured, everyone who tries to `git push` new articles
+will need to be have a user token.
+
+Now you can list the glog users with `glog users`:
+
+```
+$ glog users
+substack
+```
+
+For the rest of the user commands, just type `glog` to see the usage page.
+
 # http api
 
 When you attach a glog handler to your server, these routes are installed:
