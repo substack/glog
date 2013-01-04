@@ -70,6 +70,7 @@ function Glog (repodir) {
 }
 
 function authFor (req) {
+    if (!req.headers) return undefined;
     var m = /^basic (\S+)/i.exec(req.headers.authorization);
     if (!m) return undefined;
     var s = Buffer(m[1], 'base64').toString();
