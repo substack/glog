@@ -70,7 +70,7 @@ If you don't already have a remote for the blog repo, pass `--remote=REMOTE` to
 the `glog useradd` command.
 
 Once users have been configured, everyone who tries to `git push` new articles
-will need to be have a user token.
+will need to have a user token.
 
 Now you can list the glog users with `glog users`:
 
