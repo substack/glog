@@ -200,7 +200,9 @@ Glog.prototype.list = function () {
     }
     
     var tag = null, commit = null;
-    var tr = through(write);
+    var tr = through(write, end);
+    var tags = [];
+    
     return tr;
     
     function write (line) {
@@ -211,14 +213,14 @@ Glog.prototype.list = function () {
         }
         else if (m = /^commit\s+(\S+)/.exec(line)) {
             commit = m[1];
-            if (tag) emitTag();
+            if (tag) pushTag();
         }
         
         if (!tag) return;
         
         if (tag.date && !tag.title && /\S/.test(line)) {
             tag.title = line;
-            if (tag && commit) emitTag();
+            if (tag && commit) pushTag();
         }
         else if (m = /^Tagger:\s+(.+)/.exec(line)) {
             var s = /(.+) <(.+?)>/.exec(m[1]);
@@ -233,9 +235,17 @@ Glog.prototype.list = function () {
         }
     }
     
-    function emitTag () {
+    function end () {
+        tags.sort(sorter).forEach(function (t) { tr.queue(t) });
+        tr.queue(null);
+    }
+    function sorter (a, b) {
+        return (new Date(b.date)).valueOf() - (new Date(a.date)).valueOf();
+    }
+    
+    function pushTag () {
         tag.commit = commit;
-        tr.emit('data', tag);
+        tags.push(tag);
         tag = null;
         commit = null;
     }
