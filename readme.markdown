@@ -123,6 +123,11 @@ $ curl localhost:5000/blog.json
 ]
 ```
 
+## /blog.rss
+
+Return an [atom rss](http://www.atomenabled.org/developers/syndication/) stream
+with inline content.
+
 ## /blog/$FILE.markdown
 
 Fetch a source document $FILE as markdown.
@@ -161,6 +166,17 @@ contents rendered in `format`: either `'html'` or `'markdown'`.
 ## blog.test(req.url)
 
 Return whether or not to defer to `blog` for handling routes.
+
+## blog.rss(opts)
+
+Return an [atom rss](http://www.atomenabled.org/developers/syndication/) stream
+with the blog content inlined in `<content>` tags.
+
+opts are the required elements from the atom spec but you can probably ignore
+them and it will still work:
+
+* opts.id - just use your blog address or domain name
+* opts.title - blog title to use in the feed
 
 # usage
 
