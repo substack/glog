@@ -1,6 +1,6 @@
 {
     "name" : "glog",
-    "version" : "0.2.2",
+    "version" : "0.2.3",
     "description" : "git push blog server",
     "main" : "index.js",
     "bin" : {
@@ -9,6 +9,7 @@
     "dependencies" : {
         "pushover" : "~1.2.1",
         "marked" : "~0.2.6",
+        "ent": "~0.0.5",
         "git-file" : "~0.0.1",
         "through" : "~2.1.0",
         "JSONStream" : "~0.4.3",
