@@ -296,11 +296,16 @@ Glog.prototype.inline = function (format) {
     }
 };
 
-Glog.prototype.rss = function () {
+Glog.prototype.rss = function (opts) {
+    if (!opts) opts = {};
     var rss = through();
     rss.pause();
     rss.queue('<?xml version="1.0" encoding="utf-8"?>\n');
     rss.queue('<feed xmlns="http://www.w3.org/2005/Atom">\n');
+    
+    if (opts.id) rss.queue('<id>' + encode(opts.id) + '</id>\n');
+    if (opts.title) rss.queue('<title>' + encode(opts.title) + '</title>\n');
+    
     process.nextTick(rss.resume.bind(rss));
     
     var ls = this.list();
@@ -309,10 +314,14 @@ Glog.prototype.rss = function () {
         res.end(String(err));
     });
     
+    var first = true;
     ls.pipe(this.inline('html')).pipe(through(write, end));
     return rss;
     
     function write (doc) {
+        if (first) rss.queue('<updated>' + encode(doc.date) + '</updated>');
+        
+        first = false;
         var href = doc.title.replace(/\W+/g, '_');
         rss.queue([
             '<entry>',
