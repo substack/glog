@@ -17,8 +17,13 @@ var EventEmitter = require('events').EventEmitter;
 var fs = require('fs');
 var path = require('path');
 
-module.exports = function (repodir) {
-    var glog = new Glog(repodir);
+module.exports = function (repodir, opts) {
+    if (typeof repodir === 'object') {
+        opts = repodir;
+        opts.repodir = repodir;
+    }
+    if (!opts) opts = {};
+    var glog = new Glog(opts);
     var handle = glog.handle.bind(glog);
     
     Object.keys(Glog.prototype).forEach(function (key) {
@@ -27,13 +32,14 @@ module.exports = function (repodir) {
     return handle;
 };
 
-function Glog (repodir) {
-    if (!(this instanceof Glog)) return new Glog(repodir);
+function Glog (opts) {
+    if (!(this instanceof Glog)) return new Glog(opts);
     var self = this;
     
-    self.repo = pushover(repodir);
-    self.repodir = repodir + '/blog.git';
-    self.authdir = repodir + '/auth.git';
+    self.options = opts;
+    self.repo = pushover(opts.repodir);
+    self.repodir = opts.repodir + '/blog.git';
+    self.authdir = opts.repodir + '/auth.git';
     
     self.repo.on('push', function (push) {
         if (push.repo === 'auth.git') {
@@ -303,8 +309,16 @@ Glog.prototype.rss = function (opts) {
     rss.queue('<?xml version="1.0" encoding="utf-8"?>\n');
     rss.queue('<feed xmlns="http://www.w3.org/2005/Atom">\n');
     
-    if (opts.id) rss.queue('<id>' + encode(opts.id) + '</id>\n');
-    if (opts.title) rss.queue('<title>' + encode(opts.title) + '</title>\n');
+    if (opts.id || this.options.id) {
+        rss.queue('<id>' + encode(opts.id || this.options.id) + '</id>\n');
+    }
+    if (opts.title || this.options.title) {
+        rss.queue(
+            '<title>'
+            + encode(opts.title || this.options.title)
+            + '</title>\n'
+        );
+    }
     
     process.nextTick(rss.resume.bind(rss));
     

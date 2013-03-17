@@ -142,9 +142,14 @@ Fetch a source document $FILE.markdown rendered as html.
 var glog = require('glog')
 ```
 
-## var blog = glog(repodir)
+## var blog = glog(opts)
 
-Create a new `blog` handle using `repodir` to store git blog data.
+Create a new `blog` handle using `opts.repodir` to store git blog data.
+
+If `opts` is a string, it's taken as the `opts.repodir`.
+
+You can also set `opts.title` and `opts.id` which are used as defaults by the
+rss feed.
 
 ## blog(req, res)
 
