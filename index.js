@@ -311,9 +311,8 @@ Glog.prototype.rss = function (opts) {
     rss.queue('<?xml version="1.0" encoding="utf-8"?>\n');
     rss.queue('<feed xmlns="http://www.w3.org/2005/Atom">\n');
     
-    if (opts.id || this.options.id) {
-        rss.queue('<id>' + encode(opts.id || this.options.id) + '</id>\n');
-    }
+    var site = opts.id || this.options.id;
+    if (site) rss.queue('<id>' + encode(site) + '</id>\n');
     if (opts.title || this.options.title) {
         rss.queue(
             '<title>'
@@ -341,11 +340,12 @@ Glog.prototype.rss = function (opts) {
         
         first = false;
         var href = doc.title.replace(/\W+/g, '_');
+        var id = (site ? site : '').replace(/\/+$/, '') + '/' + href;
         rss.queue([
             '<entry>',
             '<title>' + encode(doc.title) + '</title>',
             '<link rel="self" href="/' + encode(href) + '" />',
-            '<id>' + encode(doc.commit) + '</id>',
+            '<id>' + encode(id) + '</id>',
             '<author>',
                 '<name>' + encode(doc.author) + '</name>',
                 '<email>' + encode(doc.email) + '</email>',
