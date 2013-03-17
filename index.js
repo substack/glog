@@ -5,6 +5,7 @@ var through = require('through');
 var JSONStream = require('JSONStream');
 var split = require('split');
 var qs = require('querystring');
+var encode = require('ent').encode;
 
 var exec = require('child_process').exec;
 var run = require('comandante');
@@ -86,6 +87,7 @@ var routes = {
     git : /^\/blog\.git\b/,
     auth : /^\/auth\.git\b/,
     json : /^\/blog\.json(?:\?(.*)|$)/,
+    rss : /^\/blog\.xml(?:\?(.*)|$)/,
     html : /^\/blog\/([^?]+\.html)(\?|$)/,
     markdown : /^\/blog\/([^?]+\.(?:md|markdown))(\?|$)/
 };
@@ -136,6 +138,10 @@ Glog.prototype.handle = function (req, res) {
         else {
             ls.pipe(JSONStream.stringify()).pipe(res);
         }
+    }
+    else if (m = routes.rss.exec(req.url)) {
+        res.setHeader('content-type', 'application/rss+xml');
+        self.rss().pipe(res);
     }
     else if (m = routes.html.exec(req.url)) {
         var s = self.read(m[1].replace(/\.html$/, '.markdown'));
@@ -287,5 +293,45 @@ Glog.prototype.inline = function (format) {
     function end () {
         ended = true;
         if (pending === 0) tr.emit('end');
+    }
+};
+
+Glog.prototype.rss = function () {
+    var rss = through();
+    rss.pause();
+    rss.queue('<?xml version="1.0" encoding="utf-8"?>\n');
+    rss.queue('<feed xmlns="http://www.w3.org/2005/Atom">\n');
+    process.nextTick(rss.resume.bind(rss));
+    
+    var ls = this.list();
+    ls.on('error', function (err) {
+        res.statusCode = 500;
+        res.end(String(err));
+    });
+    
+    ls.pipe(this.inline('html')).pipe(through(write, end));
+    return rss;
+    
+    function write (doc) {
+        var href = doc.title.replace(/\W+/g, '_');
+        rss.queue([
+            '<entry>',
+            '<title>' + encode(doc.title) + '</title>',
+            '<link rel="self" href="/' + encode(href) + '" />',
+            '<id>' + encode(doc.commit) + '</id>',
+            '<author>',
+                '<name>' + encode(doc.author) + '</name>',
+                '<email>' + encode(doc.email) + '</email>',
+            '</author>',
+            '<updated>' + encode(doc.date) + '</updated>',
+            '<content type="html">' + encode(doc.body) + '</content>',
+            '</entry>',
+            ''
+        ].join('\n'));
+    }
+    
+    function end () {
+        rss.queue('</feed>\n');
+        rss.queue(null);
     }
 };
