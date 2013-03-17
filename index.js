@@ -16,6 +16,7 @@ var EventEmitter = require('events').EventEmitter;
 
 var fs = require('fs');
 var path = require('path');
+var timestamp = require('internet-timestamp');
 
 module.exports = function (repodir, opts) {
     if (typeof repodir === 'object') {
@@ -334,7 +335,9 @@ Glog.prototype.rss = function (opts) {
     return rss;
     
     function write (doc) {
-        if (first) rss.queue('<updated>' + encode(doc.date) + '</updated>');
+        if (first) {
+            rss.queue('<updated>' + encode(timestamp(doc.date)) + '</updated>');
+        }
         
         first = false;
         var href = doc.title.replace(/\W+/g, '_');
@@ -347,7 +350,7 @@ Glog.prototype.rss = function (opts) {
                 '<name>' + encode(doc.author) + '</name>',
                 '<email>' + encode(doc.email) + '</email>',
             '</author>',
-            '<updated>' + encode(doc.date) + '</updated>',
+            '<updated>' + encode(timestamp(doc.date)) + '</updated>',
             '<content type="html">' + encode(doc.body) + '</content>',
             '</entry>',
             ''
