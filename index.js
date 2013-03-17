@@ -20,9 +20,10 @@ var path = require('path');
 module.exports = function (repodir, opts) {
     if (typeof repodir === 'object') {
         opts = repodir;
-        opts.repodir = repodir;
+        repodir = opts.repodir;
     }
     if (!opts) opts = {};
+    opts.repodir = repodir;
     var glog = new Glog(opts);
     var handle = glog.handle.bind(glog);
     
