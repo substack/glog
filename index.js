@@ -25,6 +25,13 @@ module.exports = function (repodir, opts) {
     }
     if (!opts) opts = {};
     opts.repodir = repodir;
+
+    if(opts.highlight) {
+        markdown.setOptions({
+            highlight: opts.highlight
+        });
+    }
+    
     var glog = new Glog(opts);
     var handle = glog.handle.bind(glog);
     
