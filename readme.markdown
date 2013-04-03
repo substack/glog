@@ -149,7 +149,7 @@ Create a new `blog` handle using `opts.repodir` to store git blog data.
 If `opts` is a string, it's taken as the `opts.repodir`.
 
 You can also set `opts.title` and `opts.id` which are used as defaults by the
-rss feed.
+rss feed, and `opts.highlight` which is the highlight-function used by marked.
 
 ## blog(req, res)
 
