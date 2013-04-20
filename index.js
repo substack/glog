@@ -58,9 +58,9 @@ function Glog (opts) {
     });
     
     function requireAuth (dup) {
+        dup.setHeader('www-authenticate', 'basic');
         var auth = authFor(dup);
         dup.once('reject', function () {
-            dup.setHeader('www-authenticate', 'basic');
             dup.end('ACCESS DENIED');
         });
         
