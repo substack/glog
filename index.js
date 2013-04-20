@@ -41,19 +41,14 @@ function Glog (opts) {
     self.options = opts;
     self.repo = pushover(opts.repodir);
     self.repodir = opts.repodir + '/blog.git';
-    self.authdir = opts.repodir + '/auth.git';
+    self.authfile = opts.repodir + '/users.json';
     
     self.repo.on('push', function (push) {
-        if (push.repo === 'auth.git') {
-            push.once('accept', function () {
-                self._userCache = null;
-            });
-        }
         requireAuth(push);
     });
     
     self.repo.on('fetch', function (dup) {
-        if (dup.repo === 'auth.git') requireAuth(dup)
+        if (dup.repo !== 'blog.git') dup.reject()
         else dup.accept()
     });
     
@@ -64,7 +59,7 @@ function Glog (opts) {
             dup.end('ACCESS DENIED');
         });
         
-        self._getUsers(function (err, users) {
+        self.users(function (err, users) {
             if (err) return dup.reject(500);
             if (!users) {
                 return dup.accept(); // admin party
@@ -72,7 +67,7 @@ function Glog (opts) {
             if (!auth) return dup.reject(401);
             
             if (!users[auth.user]) return dup.reject(401);
-            if (users[auth.user].token !== auth.pass) return dup.reject(401);
+            if (users[auth.user] !== auth.pass) return dup.reject(401);
             dup.accept();
         });
     }
@@ -97,26 +92,70 @@ var routes = {
     json : /^\/blog\.json(?:\?(.*)|$)/,
     rss : /^\/blog\.xml(?:\?(.*)|$)/,
     html : /^\/blog\/([^?]+\.html)(\?|$)/,
-    markdown : /^\/blog\/([^?]+\.(?:md|markdown))(\?|$)/
+    markdown : /^\/blog\/([^?]+\.(?:md|markdown))(\?|$)/,
+    users : /^\/blog\/_\/users(\?|$)/,
+    useradd : /^\/blog\/_\/useradd\/([^?]+)/,
+    userdel : /^\/blog\/_\/userdel\/([^?]+)/
 };
 
-Glog.prototype._getUsers = function (cb) {
-    var self = this;
-    if (self._userCache) return cb(null, self._userCache);
-    
-    var us = git.read('HEAD', 'users.json', { cwd : self.authdir });
-    us.on('error', function () { cb(null, null) });
-    
-    var data = '';
-    us.on('data', function (buf) { data += buf });
-    us.on('end', function () {
-        if (data === '') return cb(null, null)
-        
+Glog.prototype.users = function (cb) {
+    fs.readFile(this.authfile, function (err, data) {
+        if (err) return cb(null, null);
         try { var users = JSON.parse(data) }
         catch (err) { return cb(err) }
-        
-        self._userCache = users;
         cb(null, users);
+    });
+};
+
+Glog.prototype.userAdd = function (user, cb) {
+    var token = Math.floor(Math.random() * Math.pow(16, 8)).toString(16);
+    this.userMod(mod, function (err) {
+        if (err) return cb(err);
+        cb(null, token);
+    });
+    function mod (users) { users[user] = token }
+};
+
+Glog.prototype.userDel = function (user, cb) {
+    this.userMod(mod, function (err) {
+        if (err) return cb(err);
+        cb(null);
+    });
+    function mod (users) { delete users[user] }
+};
+
+Glog.prototype.userMod = function (f, cb) {
+    var self = this;
+    if (!cb) cb = function () {};
+    
+    this.users(function (err, users) {
+        if (err) return cb(err);
+        if (!users) users = {};
+        users = f(users) || users;
+        
+        var src = JSON.stringify(users, null, 2);
+        fs.writeFile(self.authfile, src, function (err) {
+            if (err) cb(err)
+            else cb(null)
+        });
+    });
+};
+
+Glog.prototype._requireAuth = function (req, res, cb) {
+    this.users(function (err, users) {
+        if (err) {
+            res.statusCode = 500;
+            res.end(String(err) + '\n');
+        }
+        if (!users) return cb({}); // admin party
+        
+        var auth = authFor(req);
+        if (!auth || users[auth.user] !== auth.pass) {
+            res.statusCode = 401;
+            res.end('ACCESS DENIED\n');
+            return;
+        }
+        else cb(users);
     });
 };
 
@@ -174,6 +213,36 @@ Glog.prototype.handle = function (req, res) {
         s.on('error', function (err) {
             res.statusCode = 500;
             res.end(String(err));
+        });
+    }
+    else if (routes.users.test(req.url)) {
+        self._requireAuth(req, res, function (users) {
+            var names = Object.keys(users || {});
+            res.end(names.join('\n') + (names.length ? '\n' : ''));
+        });
+    }
+    else if (m = routes.useradd.exec(req.url)) {
+        self._requireAuth(req, res, function () {
+            self.userAdd(m[1], function (err, token) {
+                if (err) {
+                    res.statusCode = 500;
+                    res.end(String(err));
+                    return;
+                }
+                res.end(token + '\n');
+            });
+        });
+    }
+    else if (m = routes.userdel.exec(req.url)) {
+        self._requireAuth(req, res, function () {
+            self.userDel(m[1], function (err) {
+                if (err) {
+                    res.statusCode = 500;
+                    res.end(String(err));
+                    return;
+                }
+                else res.end('removed user \n' + m[1]);
+            });
         });
     }
     else {

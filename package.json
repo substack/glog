@@ -20,7 +20,9 @@
         "inherits" : "~1.0.0",
         "optimist" : "~0.3.5",
         "mkdirp" : "~0.3.4",
-        "internet-timestamp": "~0.0.1"
+        "internet-timestamp": "~0.0.1",
+        "hyperquest": "~0.1.4",
+        "concat-stream": "~0.1.1"
     },
     "repository" : {
         "type" : "git",
