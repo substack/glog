@@ -151,6 +151,8 @@ If `opts` is a string, it's taken as the `opts.repodir`.
 You can also set `opts.title` and `opts.id` which are used as defaults by the
 rss feed, and `opts.highlight` which is the highlight-function used by marked.
 
+All other `opts` are passed through directly to `marked.parse(src, opts)`.
+
 ## blog(req, res)
 
 Handle the `(req, res)` in order to serve blog.json and blog.git.
