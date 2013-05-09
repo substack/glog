@@ -25,12 +25,6 @@ module.exports = function (repodir, opts) {
     }
     if (!opts) opts = {};
     opts.repodir = repodir;
-
-    if(opts.highlight) {
-        markdown.setOptions({
-            highlight: opts.highlight
-        });
-    }
     
     var glog = new Glog(opts);
     var handle = glog.handle.bind(glog);
@@ -204,7 +198,7 @@ Glog.prototype.handle = function (req, res) {
         s.on('data', function (buf) { data += buf });
         s.on('end', function () {
             res.setHeader('content-type', 'text/html');
-            res.end(markdown.parse(data));
+            res.end(markdown.parse(data, self.options));
         });
         
         s.on('error', function (err) {
