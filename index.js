@@ -262,7 +262,7 @@ Glog.prototype.read = function (file) {
     return git.read('HEAD', file, { cwd : this.repodir });
 };
 
-Glog.prototype.list = function () {
+Glog.prototype.list = function (cb) {
     var opts = { cwd : this.repodir };
     
     fs.stat(this.repodir, function (err, stat) {
@@ -286,6 +286,7 @@ Glog.prototype.list = function () {
     var tag = null, commit = null;
     var tr = through(write, end);
     var tags = [];
+    if (cb) tr.on('error', cb);
     
     return tr;
     
@@ -321,6 +322,7 @@ Glog.prototype.list = function () {
     
     function end () {
         tags.sort(sorter).forEach(function (t) { tr.queue(t) });
+        if (cb) cb(null, tags);
         tr.queue(null);
     }
     function sorter (a, b) {
