@@ -262,6 +262,47 @@ Glog.prototype.read = function (file) {
     return git.read('HEAD', file, { cwd : this.repodir });
 };
 
+Glog.prototype.data = function (file) {
+    var self = this;
+    var opts = { cwd : self.repodir };
+    var args = ['show', file, '--'];
+
+    var json = {};
+
+    var tr = through(write, end);
+
+    run('git', args, opts).pipe(split()).pipe(tr);
+
+    return tr;
+
+    function write (line) {
+        var m;
+        if (m = /^tag\s+(.+\.(?:markdown|md|html))/.exec(line)) {
+            json.file = m[1];
+        } else if (m = /^commit\s+(\S+)/.exec(line)) {
+            json.commit = m[1];
+        } else if (json.date && !json.title && /\S/.test(line)) {
+            json.title = line;
+        } else if (m = /^Tagger:\s+(.+)/.exec(line)) {
+            var s = /(.+) <(.+?)>/.exec(m[1]);
+            if (s) {
+                json.author = s[1];
+                json.email = s[2];
+            }
+            else json.author = m[1]
+        } else if (m = /^Date:\s+(.+)/.exec(line)) {
+            json.date = m[1];
+        } else {
+            return;
+        }
+    }
+
+    function end () {
+        tr.queue(json);
+        tr.queue(null);
+    }
+}
+
 Glog.prototype.list = function () {
     var opts = { cwd : this.repodir };
     
