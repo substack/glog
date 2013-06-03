@@ -165,9 +165,13 @@ Return a readable stream of blog article filenames.
 
 Return a readable stream with the contents of `file`.
 
+## blog.data(file)
+
+Return a readable stream with the data for `file`.
+
 ## blog.inline(format)
 
-Return a through stream you can pipe `blog.list()` to that will inline article
+Return a through stream you can pipe `blog.list()` or `blog.data(file)` to that will inline article
 contents rendered in `format`: either `'html'` or `'markdown'`.
 
 ## blog.test(req.url)
