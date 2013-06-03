@@ -403,7 +403,7 @@ Glog.prototype.inline = function (format) {
             doc.body = ({
                 html : markdown.parse,
                 markdown : String
-            }[format] || String)(data);
+            }[format] || String)(data, self.options);
             
             em.emit('data', { order : n, value : doc });
         });
