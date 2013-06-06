@@ -262,8 +262,10 @@ Glog.prototype.read = function (file) {
     return git.read('HEAD', file, { cwd : this.repodir });
 };
 
-Glog.prototype.list = function (cb) {
-    var opts = { cwd : this.repodir };
+Glog.prototype.list = function (opts, cb) {
+    if (typeof opts === 'function') { cb = opts; opts = {} }
+    if (!opts) opts = {};
+    if (!opts.cwd) opts.cwd = this.repodir;
     
     fs.stat(this.repodir, function (err, stat) {
         if (err && err.code === 'ENOENT') {
@@ -274,9 +276,14 @@ Glog.prototype.list = function (cb) {
     
     function ontag (err, stdout, stderr) {
         if (err) return tr.emit('error', err);
+        var tags = stdout.split('\n');
+        if (opts.start) {
+            var ix = tags.indexOf(opts.start);
+            tags = ix < 0 ? [] : tags.slice(ix);
+        }
         
         var args = [ 'show' ]
-            .concat(stdout.split('\n'))
+            .concat(tags)
             .concat('--')
             .filter(Boolean)
         ;
@@ -291,6 +298,8 @@ Glog.prototype.list = function (cb) {
     return tr;
     
     function write (line) {
+        if (opts.limit !== undefined && tags.length > opts.limit) return;
+        
         var m;
         if (m = /^tag\s+(.+\.(?:markdown|md|html))/.exec(line)) {
             tag = { file : m[1] };
