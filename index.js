@@ -265,6 +265,8 @@ Glog.prototype.read = function (file) {
 Glog.prototype.list = function (opts, cb) {
     if (typeof opts === 'function') { cb = opts; opts = {} }
     if (!opts) opts = {};
+    if (/^\d+$/.test(opts.start)) opts.start = parseInt(opts.start, 10);
+    
     if (!opts.cwd) opts.cwd = this.repodir;
     
     fs.stat(this.repodir, function (err, stat) {
@@ -277,10 +279,6 @@ Glog.prototype.list = function (opts, cb) {
     function ontag (err, stdout, stderr) {
         if (err) return tr.emit('error', err);
         var tags = stdout.split('\n');
-        if (opts.start) {
-            var ix = tags.indexOf(opts.start);
-            tags = ix < 0 ? [] : tags.slice(ix);
-        }
         
         var args = [ 'show' ]
             .concat(tags)
@@ -298,8 +296,6 @@ Glog.prototype.list = function (opts, cb) {
     return tr;
     
     function write (line) {
-        if (opts.limit !== undefined && tags.length > opts.limit) return;
-        
         var m;
         if (m = /^tag\s+(.+\.(?:markdown|md|html))/.exec(line)) {
             tag = { file : m[1] };
@@ -330,12 +326,36 @@ Glog.prototype.list = function (opts, cb) {
     }
     
     function end () {
-        tags.sort(sorter).forEach(function (t) { tr.queue(t) });
+        tags.sort(sorter);
+        
+        if (typeof opts.start === 'number') {
+            tags.splice(0, opts.start);
+        }
+        else if (opts.start) {
+            for (var i = 0; i < tags.length; i++) {
+                if (tags[i].file === opts.start) break;
+                if (tags[i].title === opts.start) break;
+            }
+            tags.splice(0, i);
+        }
+        else if (opts.after) {
+            for (var i = 0; i < tags.length; i++) {
+                if (tags[i].file === opts.after) break;
+                if (tags[i].title === opts.after) break;
+            }
+            tags.splice(0, i + 1);
+        }
+        if (opts.limit !== undefined) tags.splice(opts.limit);
+        tags.forEach(function (t) { tr.queue(t) });
+        
         if (cb) cb(null, tags);
         tr.queue(null);
     }
+    
     function sorter (a, b) {
-        return (new Date(b.date)).valueOf() - (new Date(a.date)).valueOf();
+        var da = new Date(a.date);
+        var db = new Date(b.date);
+        return da.valueOf() < db.valueOf() ? 1 : -1;
     }
     
     function pushTag () {
