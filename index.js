@@ -169,7 +169,11 @@ Glog.prototype.handle = function (req, res) {
     }
     else if (m = routes.json.exec(req.url)) {
         var params = qs.parse(m[1]);
-        var ls = self.list();
+        var ls = self.list({
+            start: params.start,
+            after: params.after,
+            limit: params.limit
+        });
         ls.on('error', function (err) {
             res.statusCode = 500;
             res.end(String(err));
