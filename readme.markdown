@@ -157,9 +157,15 @@ All other `opts` are passed through directly to `marked.parse(src, opts)`.
 
 Handle the `(req, res)` in order to serve blog.json and blog.git.
 
-## blog.list()
+## blog.list(opts)
 
 Return a readable stream of blog article filenames.
+
+Optionally:
+
+* `opts.limit` - number of results to show
+* `opts.start` - show results starting at this tag or title
+* `opts.after` - show results after this tag or title
 
 ## blog.read(file)
 
