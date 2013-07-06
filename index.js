@@ -6,6 +6,7 @@ var JSONStream = require('JSONStream');
 var split = require('split');
 var qs = require('querystring');
 var encode = require('ent').encode;
+var concat = require('concat-stream');
 
 var exec = require('child_process').exec;
 var run = require('comandante');
@@ -197,13 +198,8 @@ Glog.prototype.handle = function (req, res) {
     }
     else if (m = routes.html.exec(req.url)) {
         var s = self.read(m[1].replace(/\.html$/, '.markdown'));
-        
-        var data = '';
-        s.on('data', function (buf) { data += buf });
-        s.on('end', function () {
-            res.setHeader('content-type', 'text/html');
-            res.end(markdown.parse(data, self.options));
-        });
+        res.setHeader('content-type', 'text/html');
+        s.pipe(res);
         
         s.on('error', function (err) {
             res.statusCode = 500;
@@ -263,21 +259,32 @@ Glog.prototype.test = function (url) {
 };
 
 Glog.prototype.read = function (file) {
-    return git.read('HEAD', file, { cwd : this.repodir });
+    var self = this;
+    var out = through();
+    git.read('HEAD', file, { cwd : this.repodir })
+        .pipe(concat(function (body) {
+            out.queue(markdown.parse(body.toString('utf8'), self.options));
+            out.queue(null);
+        }))
+    ;
+    return out;
+};
+
+Glog.prototype.get = function (name) {
+    return this.list({ start: name, limit: 1 });
 };
 
 Glog.prototype.list = function (opts, cb) {
+    var self = this;
     if (typeof opts === 'function') { cb = opts; opts = {} }
     if (!opts) opts = {};
     if (/^\d+$/.test(opts.start)) opts.start = parseInt(opts.start, 10);
-    
-    if (!opts.cwd) opts.cwd = this.repodir;
     
     fs.stat(this.repodir, function (err, stat) {
         if (err && err.code === 'ENOENT') {
             tr.emit('end');
         }
-        else exec('git tag -l', opts, ontag);
+        else exec('git tag -l', { cwd: self.repodir }, ontag);
     });
     
     function ontag (err, stdout, stderr) {
@@ -289,7 +296,7 @@ Glog.prototype.list = function (opts, cb) {
             .concat('--')
             .filter(Boolean)
         ;
-        run('git', args, opts).pipe(split()).pipe(tr);
+        run('git', args, { cwd: self.repodir }).pipe(split()).pipe(tr);
     }
     
     var tag = null, commit = null;
@@ -338,14 +345,14 @@ Glog.prototype.list = function (opts, cb) {
         else if (opts.start) {
             for (var i = 0; i < tags.length; i++) {
                 if (tags[i].file === opts.start) break;
-                if (tags[i].title === opts.start) break;
+                if (compareTitle(tags[i].title, opts.start)) break;
             }
             tags.splice(0, i);
         }
         else if (opts.after) {
             for (var i = 0; i < tags.length; i++) {
                 if (tags[i].file === opts.after) break;
-                if (tags[i].title === opts.after) break;
+                if (compareTitle(tags[i].title, opts.after)) break;
             }
             tags.splice(0, i + 1);
         }
@@ -370,13 +377,13 @@ Glog.prototype.list = function (opts, cb) {
     }
 };
 
-Glog.prototype.inline = function (format) {
+Glog.prototype.inline = function () {
     var self = this;
     var em = new OrderedEmitter;
     em.on('data', function (doc) {
-        tr.emit('data', doc.value);
+        tr.queue(doc.value);
         if (--pending === 0 && ended) {
-            tr.emit('end');
+            tr.queue(null);
         }
     });
     var order = 0;
@@ -391,16 +398,10 @@ Glog.prototype.inline = function (format) {
         var n = order ++;
         pending ++;
         
-        var data = '';
-        s.on('data', function (buf) { data += buf });
-        s.on('end', function () {
-            doc.body = ({
-                html : markdown.parse,
-                markdown : String
-            }[format] || String)(data);
-            
+        s.pipe(concat(function (body) {
+            doc.body = body;
             em.emit('data', { order : n, value : doc });
-        });
+        }));
     }
     
     function end () {
@@ -467,3 +468,11 @@ Glog.prototype.rss = function (opts) {
         rss.queue(null);
     }
 };
+
+function compareTitle (x, y) {
+    return norm(x) === norm(y);
+    
+    function norm (s) {
+        return s.replace(/[\W_]+/g, '_').replace(/^_+|_+$/, '');
+    }
+}

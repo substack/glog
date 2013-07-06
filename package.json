@@ -22,7 +22,7 @@
         "mkdirp" : "~0.3.4",
         "internet-timestamp": "~0.0.1",
         "hyperquest": "~0.1.4",
-        "concat-stream": "~0.1.1"
+        "concat-stream": "~1.0.0"
     },
     "repository" : {
         "type" : "git",
