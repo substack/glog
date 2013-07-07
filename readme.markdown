@@ -157,9 +157,21 @@ All other `opts` are passed through directly to `marked.parse(src, opts)`.
 
 Handle the `(req, res)` in order to serve blog.json and blog.git.
 
+## blog.get(name)
+
+Get a single article, returning a readable stream of a single blog documents
+object. Blog documents have:
+
+* doc.title - title text
+* doc.commit - document git commit hash
+* doc.date - parseable date string
+* doc.author - author name as a string
+* doc.email - author email from git commit data
+* doc.file - document filename in the git repo
+
 ## blog.list(opts)
 
-Return a readable stream of blog article filenames.
+Return a readable stream of blog article documents.
 
 Optionally:
 
