@@ -346,6 +346,7 @@ Glog.prototype.list = function (opts, cb) {
         else if (opts.start) {
             for (var i = 0; i < tags.length; i++) {
                 if (tags[i].file === opts.start) break;
+                if (tags[i].commit === opts.start) break;
                 if (compareTitle(tags[i].title, opts.start)) break;
             }
             tags.splice(0, i);
@@ -353,6 +354,7 @@ Glog.prototype.list = function (opts, cb) {
         else if (opts.after) {
             for (var i = 0; i < tags.length; i++) {
                 if (tags[i].file === opts.after) break;
+                if (tags[i].commit === opts.after) break;
                 if (compareTitle(tags[i].title, opts.after)) break;
             }
             tags.splice(0, i + 1);
