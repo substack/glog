@@ -321,6 +321,7 @@ Glog.prototype.list = function (opts, cb) {
         
         if (tag.date && !tag.title && /\S/.test(line)) {
             tag.title = line;
+            tag.href = '/' + normalizeTitle(line);
             if (tag && commit) pushTag();
         }
         else if (m = /^Tagger:\s+(.+)/.exec(line)) {
@@ -470,9 +471,10 @@ Glog.prototype.rss = function (opts) {
 };
 
 function compareTitle (x, y) {
-    return norm(x) === norm(y);
+    return normalizeTitle(x) === normalizeTitle(y);
     
-    function norm (s) {
-        return s.replace(/[\W_]+/g, '_').replace(/^_+|_+$/, '');
-    }
+}
+
+function normalizeTitle (s) {
+    return s.replace(/[\W_]+/g, '_').replace(/^_+|_+$/, '');
 }

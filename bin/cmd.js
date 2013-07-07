@@ -26,7 +26,7 @@ else if (cmd === 'useradd') {
         var uri = remote.replace(/\.git$/, '')
             + '/_/useradd/' + user
         ;
-        hyperquest(uri).pipe(concat(function (err, buf) {
+        hyperquest(uri).pipe(concat(function (buf) {
             var token = String(buf);
             if (!/^\w+\s*$/.test(token)) return console.log(token);
             
