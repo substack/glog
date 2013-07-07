@@ -188,6 +188,9 @@ Return a readable stream with the contents of `file`.
 Return a through stream you can pipe `blog.list()` to that will inline article
 contents rendered in `format`: either `'html'` or `'markdown'`.
 
+`.inline()` adds a `doc.body` string with the article contents to the document
+object.
+
 ## blog.test(req.url)
 
 Return whether or not to defer to `blog` for handling routes.
