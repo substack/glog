@@ -1,7 +1,7 @@
 var pushover = require('pushover');
 var markdown = require('marked');
 var git = require('git-file');
-var through = require('through');
+var through = require('through2');
 var JSONStream = require('JSONStream');
 var split = require('split');
 var qs = require('querystring');
@@ -263,8 +263,8 @@ Glog.prototype.read = function (file) {
     var out = through();
     git.read('HEAD', file, { cwd : this.repodir })
         .pipe(concat(function (body) {
-            out.queue(markdown.parse(body.toString('utf8'), self.options));
-            out.queue(null);
+            out.push(markdown.parse(body.toString('utf8'), self.options));
+            out.push(null);
         }))
     ;
     return out;
@@ -300,13 +300,14 @@ Glog.prototype.list = function (opts, cb) {
     }
     
     var tag = null, commit = null;
-    var tr = through(write, end);
+    var tr = through.obj(write, end);
     var tags = [];
     if (cb) tr.on('error', cb);
     
     return tr;
     
-    function write (line) {
+    function write (buf, enc, next) {
+        var line = buf.toString('utf8');
         var m;
         if (m = /^tag\s+(.+\.(?:markdown|md|html))/.exec(line)) {
             tag = { file : m[1] };
@@ -317,7 +318,7 @@ Glog.prototype.list = function (opts, cb) {
             if (tag) pushTag();
         }
         
-        if (!tag) return;
+        if (!tag) return next();
         
         if (tag.date && !tag.title && /\S/.test(line)) {
             tag.title = line;
@@ -335,6 +336,7 @@ Glog.prototype.list = function (opts, cb) {
         else if (m = /^Date:\s+(.+)/.exec(line)) {
             tag.date = m[1];
         }
+        next();
     }
     
     function end () {
@@ -360,10 +362,10 @@ Glog.prototype.list = function (opts, cb) {
             tags.splice(0, i + 1);
         }
         if (opts.limit !== undefined) tags.splice(opts.limit);
-        tags.forEach(function (t) { tr.queue(t) });
+        tags.forEach(function (t) { tr.push(t) });
         
         if (cb) cb(null, tags);
-        tr.queue(null);
+        tr.push(null);
     }
     
     function sorter (a, b) {
@@ -384,19 +386,19 @@ Glog.prototype.inline = function () {
     var self = this;
     var em = new OrderedEmitter;
     em.on('data', function (doc) {
-        tr.queue(doc.value);
+        tr.push(doc.value);
         if (--pending === 0 && ended) {
-            tr.queue(null);
+            tr.push(null);
         }
     });
     var order = 0;
     var pending = 0;
     var ended = false;
     
-    var tr = through(write, end);
+    var tr = through.obj(write, end);
     return tr;
     
-    function write (doc) {
+    function write (doc, enc, next) {
         var s = self.read(doc.file);
         var n = order ++;
         pending ++;
@@ -405,11 +407,12 @@ Glog.prototype.inline = function () {
             doc.body = body;
             em.emit('data', { order : n, value : doc });
         }));
+        next();
     }
     
     function end () {
         ended = true;
-        if (pending === 0) tr.emit('end');
+        if (pending === 0) tr.push(null);
     }
 };
 
@@ -417,13 +420,13 @@ Glog.prototype.rss = function (opts) {
     if (!opts) opts = {};
     var rss = through();
     rss.pause();
-    rss.queue('<?xml version="1.0" encoding="utf-8"?>\n');
-    rss.queue('<feed xmlns="http://www.w3.org/2005/Atom">\n');
+    rss.push('<?xml version="1.0" encoding="utf-8"?>\n');
+    rss.push('<feed xmlns="http://www.w3.org/2005/Atom">\n');
     
     var site = opts.id || this.options.id;
-    if (site) rss.queue('<id>' + encode(site) + '</id>\n');
+    if (site) rss.push('<id>' + encode(site) + '</id>\n');
     if (opts.title || this.options.title) {
-        rss.queue(
+        rss.push(
             '<title>'
             + encode(opts.title || this.options.title)
             + '</title>\n'
@@ -439,18 +442,18 @@ Glog.prototype.rss = function (opts) {
     });
     
     var first = true;
-    ls.pipe(this.inline('html')).pipe(through(write, end));
+    ls.pipe(this.inline('html')).pipe(through.obj(write, end));
     return rss;
     
-    function write (doc) {
+    function write (doc, enc, next) {
         if (first) {
-            rss.queue('<updated>' + encode(timestamp(doc.date)) + '</updated>');
+            rss.push('<updated>' + encode(timestamp(doc.date)) + '</updated>');
         }
         
         first = false;
         var href = doc.title.replace(/\W+/g, '_');
         var id = (site ? site : '').replace(/\/+$/, '') + '/' + href;
-        rss.queue([
+        rss.push([
             '<entry>',
             '<title>' + encode(doc.title) + '</title>',
             '<link rel="self" href="/' + encode(href) + '" />',
@@ -464,11 +467,12 @@ Glog.prototype.rss = function (opts) {
             '</entry>',
             ''
         ].join('\n'));
+        next();
     }
     
     function end () {
-        rss.queue('</feed>\n');
-        rss.queue(null);
+        rss.push('</feed>\n');
+        rss.push(null);
     }
 };
 
