@@ -387,14 +387,11 @@ Glog.prototype.inline = function () {
     var em = new OrderedEmitter;
     em.on('data', function (doc) {
         tr.push(doc.value);
-        if (--pending === 0 && ended) {
-            tr.push(null);
-        }
+        if (-- pending === 0) tr.push(null);
     });
-    var order = 0;
-    var pending = 0;
-    var ended = false;
     
+    var order = 0;
+    var pending = 1;
     var tr = through.obj(write, end);
     return tr;
     
@@ -411,8 +408,7 @@ Glog.prototype.inline = function () {
     }
     
     function end () {
-        ended = true;
-        if (pending === 0) tr.push(null);
+        if (--pending === 0) tr.push(null);
     }
 };
 

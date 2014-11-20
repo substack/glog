@@ -19,7 +19,7 @@
     "marked": "~0.2.6",
     "mkdirp": "~0.3.4",
     "optimist": "~0.3.5",
-    "ordered-emitter": "~0.1.0",
+    "ordered-emitter": "~0.1.1",
     "pushover": "~1.3.3",
     "split": "~0.1.0",
     "through2": "^0.6.3"
