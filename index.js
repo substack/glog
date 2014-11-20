@@ -270,8 +270,8 @@ Glog.prototype.read = function (file) {
     return out;
 };
 
-Glog.prototype.get = function (name) {
-    return this.list({ start: name, limit: 1 });
+Glog.prototype.get = function (name, cb) {
+    return this.list({ start: name, limit: 1 }, cb);
 };
 
 Glog.prototype.list = function (opts, cb) {
