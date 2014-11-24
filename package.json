@@ -1,6 +1,6 @@
 {
   "name": "glog",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "git push blog server",
   "main": "index.js",
   "bin": {
