@@ -5,7 +5,7 @@ var through = require('through2');
 var JSONStream = require('JSONStream');
 var split = require('split');
 var qs = require('querystring');
-var encode = require('ent').encode;
+var encode = require('he').encode;
 var concat = require('concat-stream');
 
 var exec = require('child_process').exec;

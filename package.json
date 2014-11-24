@@ -7,15 +7,15 @@
     "glog": "bin/cmd.js"
   },
   "dependencies": {
-    "JSONStream": "~0.4.3",
     "comandante": "~0.0.1",
     "concat-stream": "~1.0.0",
     "ecstatic": "~0.3.0",
-    "ent": "~0.0.5",
     "git-file": "~0.0.1",
+    "he": "~0.5.0",
     "hyperquest": "~0.1.4",
     "inherits": "~1.0.0",
     "internet-timestamp": "~0.0.1",
+    "JSONStream": "~0.4.3",
     "marked": "~0.2.6",
     "mkdirp": "~0.3.4",
     "optimist": "~0.3.5",
