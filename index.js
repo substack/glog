@@ -401,7 +401,7 @@ Glog.prototype.inline = function () {
         pending ++;
         
         s.pipe(concat(function (body) {
-            doc.body = body;
+            doc.body = body.toString('utf8');
             em.emit('data', { order : n, value : doc });
         }));
         next();
