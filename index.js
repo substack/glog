@@ -26,10 +26,10 @@ module.exports = function (repodir, opts) {
     }
     if (!opts) opts = {};
     opts.repodir = repodir;
-    
+
     var glog = new Glog(opts);
     var handle = glog.handle.bind(glog);
-    
+
     Object.keys(Glog.prototype).forEach(function (key) {
         handle[key] = Glog.prototype[key].bind(glog);
     });
@@ -39,35 +39,35 @@ module.exports = function (repodir, opts) {
 function Glog (opts) {
     if (!(this instanceof Glog)) return new Glog(opts);
     var self = this;
-    
+
     self.options = opts;
     self.repo = pushover(opts.repodir);
     self.repodir = opts.repodir + '/blog.git';
     self.authfile = opts.repodir + '/users.json';
-    
+
     self.repo.on('push', function (push) {
         requireAuth(push);
     });
-    
+
     self.repo.on('fetch', function (dup) {
         if (dup.repo !== 'blog.git') dup.reject()
         else dup.accept()
     });
-    
+
     function requireAuth (dup) {
         dup.setHeader('www-authenticate', 'basic');
         var auth = authFor(dup);
         dup.once('reject', function () {
             dup.end('ACCESS DENIED');
         });
-        
+
         self.users(function (err, users) {
             if (err) return dup.reject(500);
             if (!users) {
                 return dup.accept(); // admin party
             }
             if (!auth) return dup.reject(401);
-            
+
             if (!users[auth.user]) return dup.reject(401);
             if (users[auth.user] !== auth.pass) return dup.reject(401);
             dup.accept();
@@ -129,12 +129,12 @@ Glog.prototype.userDel = function (user, cb) {
 Glog.prototype.userMod = function (f, cb) {
     var self = this;
     if (!cb) cb = function () {};
-    
+
     this.users(function (err, users) {
         if (err) return cb(err);
         if (!users) users = {};
         users = f(users) || users;
-        
+
         var src = JSON.stringify(users, null, 2);
         fs.writeFile(self.authfile, src, function (err) {
             if (err) cb(err)
@@ -150,7 +150,7 @@ Glog.prototype._requireAuth = function (req, res, cb) {
             res.end(String(err) + '\n');
         }
         if (!users) return cb({}); // admin party
-        
+
         var auth = authFor(req);
         if (!auth || users[auth.user] !== auth.pass) {
             res.statusCode = 401;
@@ -164,7 +164,7 @@ Glog.prototype._requireAuth = function (req, res, cb) {
 Glog.prototype.handle = function (req, res) {
     var self = this;
     var m;
-    
+
     if (routes.git.test(req.url) || routes.auth.test(req.url)) {
         self.repo.handle(req, res);
     }
@@ -179,9 +179,9 @@ Glog.prototype.handle = function (req, res) {
             res.statusCode = 500;
             res.end(String(err));
         });
-        
+
         res.setHeader('content-type', 'application/json');
-        
+
         if (['html','markdown'].indexOf(params.inline) >= 0) {
             ls.pipe(self.inline(params.inline))
                 .pipe(JSONStream.stringify())
@@ -200,7 +200,7 @@ Glog.prototype.handle = function (req, res) {
         var s = self.read(m[1].replace(/\.html$/, '.markdown'));
         res.setHeader('content-type', 'text/html');
         s.pipe(res);
-        
+
         s.on('error', function (err) {
             res.statusCode = 500;
             res.end(String(err));
@@ -210,7 +210,7 @@ Glog.prototype.handle = function (req, res) {
         var s = self.read(m[1]);
         res.setHeader('content-type', 'text/plain');
         s.pipe(res);
-        
+
         s.on('error', function (err) {
             res.statusCode = 500;
             res.end(String(err));
@@ -279,18 +279,18 @@ Glog.prototype.list = function (opts, cb) {
     if (typeof opts === 'function') { cb = opts; opts = {} }
     if (!opts) opts = {};
     if (/^\d+$/.test(opts.start)) opts.start = parseInt(opts.start, 10);
-    
+
     fs.stat(this.repodir, function (err, stat) {
         if (err && err.code === 'ENOENT') {
             tr.emit('end');
         }
         else exec('git tag -l', { cwd: self.repodir }, ontag);
     });
-    
+
     function ontag (err, stdout, stderr) {
         if (err) return tr.emit('error', err);
         var tags = stdout.split('\n');
-        
+
         var args = [ 'show' ]
             .concat(tags)
             .concat('--')
@@ -298,14 +298,14 @@ Glog.prototype.list = function (opts, cb) {
         ;
         run('git', args, { cwd: self.repodir }).pipe(split()).pipe(tr);
     }
-    
+
     var tag = null, commit = null;
     var tr = through.obj(write, end);
     var tags = [];
     if (cb) tr.on('error', cb);
-    
+
     return tr;
-    
+
     function write (buf, enc, next) {
         var line = buf.toString('utf8');
         var m;
@@ -317,9 +317,9 @@ Glog.prototype.list = function (opts, cb) {
             commit = m[1];
             if (tag) pushTag();
         }
-        
+
         if (!tag) return next();
-        
+
         if (tag.date && !tag.title && /\S/.test(line)) {
             tag.title = line;
             tag.href = '/' + normalizeTitle(line);
@@ -338,10 +338,10 @@ Glog.prototype.list = function (opts, cb) {
         }
         next();
     }
-    
+
     function end () {
         tags.sort(sorter);
-        
+
         if (typeof opts.start === 'number') {
             tags.splice(0, opts.start);
         }
@@ -363,17 +363,17 @@ Glog.prototype.list = function (opts, cb) {
         }
         if (opts.limit !== undefined) tags.splice(opts.limit);
         tags.forEach(function (t) { tr.push(t) });
-        
+
         if (cb) cb(null, tags);
         tr.push(null);
     }
-    
+
     function sorter (a, b) {
         var da = new Date(a.date);
         var db = new Date(b.date);
         return da.valueOf() < db.valueOf() ? 1 : -1;
     }
-    
+
     function pushTag () {
         tag.commit = commit;
         tags.push(tag);
@@ -389,24 +389,24 @@ Glog.prototype.inline = function () {
         tr.push(doc.value);
         if (-- pending === 0) tr.push(null);
     });
-    
+
     var order = 0;
     var pending = 1;
     var tr = through.obj(write, end);
     return tr;
-    
+
     function write (doc, enc, next) {
         var s = self.read(doc.file);
         var n = order ++;
         pending ++;
-        
+
         s.pipe(concat(function (body) {
             doc.body = body.toString('utf8');
             em.emit('data', { order : n, value : doc });
         }));
         next();
     }
-    
+
     function end () {
         if (--pending === 0) tr.push(null);
     }
@@ -418,7 +418,7 @@ Glog.prototype.rss = function (opts) {
     rss.pause();
     rss.push('<?xml version="1.0" encoding="utf-8"?>\n');
     rss.push('<feed xmlns="http://www.w3.org/2005/Atom">\n');
-    
+
     var site = opts.id || this.options.id;
     if (site) rss.push('<id>' + encode(site) + '</id>\n');
     if (opts.title || this.options.title) {
@@ -428,24 +428,24 @@ Glog.prototype.rss = function (opts) {
             + '</title>\n'
         );
     }
-    
+
     process.nextTick(rss.resume.bind(rss));
-    
+
     var ls = this.list();
     ls.on('error', function (err) {
         res.statusCode = 500;
         res.end(String(err));
     });
-    
+
     var first = true;
     ls.pipe(this.inline('html')).pipe(through.obj(write, end));
     return rss;
-    
+
     function write (doc, enc, next) {
         if (first) {
             rss.push('<updated>' + encode(timestamp(doc.date)) + '</updated>');
         }
-        
+
         first = false;
         var href = doc.title.replace(/\W+/g, '_');
         var id = (site ? site : '').replace(/\/+$/, '') + '/' + href;
@@ -465,7 +465,7 @@ Glog.prototype.rss = function (opts) {
         ].join('\n'));
         next();
     }
-    
+
     function end () {
         rss.push('</feed>\n');
         rss.push(null);
@@ -474,7 +474,7 @@ Glog.prototype.rss = function (opts) {
 
 function compareTitle (x, y) {
     return normalizeTitle(x) === normalizeTitle(y);
-    
+
 }
 
 function normalizeTitle (s) {
