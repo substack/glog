@@ -198,22 +198,41 @@ Glog.prototype.handle = function (req, res) {
     }
     else if (m = routes.html.exec(req.url)) {
         var s = self.read(m[1].replace(/\.html$/, '.markdown'));
-        res.setHeader('content-type', 'text/html');
 
+        res.setHeader('content-type', 'text/html');
         self.markdownToHtml(s).pipe(res);
 
         s.on('error', function (err) {
-            res.statusCode = 500;
+            if (/does not exist/.test(String(err))) {
+              res.statusCode = 404;
+            } else {
+              res.statusCode = 500;
+            }
             res.end(String(err));
         });
     }
     else if (m = routes.markdown.exec(req.url)) {
         var s = self.read(m[1]);
+
         res.setHeader('content-type', 'text/plain');
-        s.pipe(res);
+
+        // Necessary to catch errors before the stream is closed, since
+        // git-file will only emit errors AFTER the command exits.
+        var out = through();
+        s.pipe(concat(function (body) {
+            if (body) {
+                out.push(body);
+                out.push(null);
+            }
+        }))
+        out.pipe(res);
 
         s.on('error', function (err) {
-            res.statusCode = 500;
+            if (/does not exist/.test(String(err))) {
+              res.statusCode = 404;
+            } else {
+              res.statusCode = 500;
+            }
             res.end(String(err));
         });
     }
@@ -469,8 +488,10 @@ Glog.prototype.markdownToHtml = function (s) {
   var self = this;
   var out = through();
   s.pipe(concat(function (body) {
-      out.push(markdown.parse(body.toString('utf8'), self.options));
-      out.push(null);
+      if (body) {
+          out.push(markdown.parse(body.toString('utf8'), self.options));
+          out.push(null);
+      }
   }))
   return out;
 }
