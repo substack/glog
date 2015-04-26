@@ -199,7 +199,8 @@ Glog.prototype.handle = function (req, res) {
     else if (m = routes.html.exec(req.url)) {
         var s = self.read(m[1].replace(/\.html$/, '.markdown'));
         res.setHeader('content-type', 'text/html');
-        s.pipe(res);
+
+        self.markdownToHtml(s).pipe(res);
 
         s.on('error', function (err) {
             res.statusCode = 500;
@@ -259,15 +260,7 @@ Glog.prototype.test = function (url) {
 };
 
 Glog.prototype.read = function (file) {
-    var self = this;
-    var out = through();
-    git.read('HEAD', file, { cwd : this.repodir })
-        .pipe(concat(function (body) {
-            out.push(markdown.parse(body.toString('utf8'), self.options));
-            out.push(null);
-        }))
-    ;
-    return out;
+    return git.read('HEAD', file, { cwd : this.repodir })
 };
 
 Glog.prototype.get = function (name, cb) {
@@ -471,6 +464,16 @@ Glog.prototype.rss = function (opts) {
         rss.push(null);
     }
 };
+
+Glog.prototype.markdownToHtml = function (s) {
+  var self = this;
+  var out = through();
+  s.pipe(concat(function (body) {
+      out.push(markdown.parse(body.toString('utf8'), self.options));
+      out.push(null);
+  }))
+  return out;
+}
 
 function compareTitle (x, y) {
     return normalizeTitle(x) === normalizeTitle(y);
