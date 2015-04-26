@@ -29,7 +29,7 @@ else if (cmd === 'useradd') {
         hyperquest(uri).pipe(concat(function (buf) {
             var token = String(buf);
             if (!/^\w+\s*$/.test(token)) return console.log(token);
-            
+
             var u = url.parse(remote);
             console.log(u.protocol + '//'
                 + encodeURIComponent(user)
@@ -69,7 +69,7 @@ function error (msg) {
 
 function getRemote (cb) {
     if (argv.remote) return cb(null, argv.remote);
-    
+
     exec('git remote -v', function (err, stdout, stderr) {
         if (err) return cb(err);
         var m = /(https?:\/\/\S+\/blog\.git)\b/.exec(stdout);
