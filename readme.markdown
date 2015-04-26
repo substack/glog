@@ -123,7 +123,7 @@ $ curl localhost:5000/blog.json
 ]
 ```
 
-## /blog.rss
+## /blog.xml
 
 Return an [atom rss](http://www.atomenabled.org/developers/syndication/) stream
 with inline content.
