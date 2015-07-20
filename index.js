@@ -394,7 +394,7 @@ Glog.prototype.list = function (opts, cb) {
     }
 };
 
-Glog.prototype.inline = function () {
+Glog.prototype.inline = function (format) {
     var self = this;
     var em = new OrderedEmitter;
     em.on('data', function (doc) {
@@ -412,7 +412,8 @@ Glog.prototype.inline = function () {
         var n = order ++;
         pending ++;
 
-        s.pipe(concat(function (body) {
+        var stream = (format === 'html' ? self.markdownToHtml(s) : s);
+        stream.pipe(concat(function (body) {
             doc.body = body.toString('utf8');
             em.emit('data', { order : n, value : doc });
         }));
