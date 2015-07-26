@@ -197,19 +197,32 @@ Glog.prototype.handle = function (req, res) {
         self.rss().pipe(res);
     }
     else if (m = routes.html.exec(req.url)) {
-        var s = self.read(m[1].replace(/\.html$/, '.markdown'));
 
-        res.setHeader('content-type', 'text/html');
-        self.markdownToHtml(s).pipe(res);
-
-        s.on('error', function (err) {
+        // Try filename.markdown first.
+        readAndStream(m[1].replace(/\.html$/, '.markdown'), function(err) {
+            // Try filename.md on failure.
             if (/does not exist/.test(String(err))) {
-              res.statusCode = 404;
+                readAndStream(m[1].replace(/\.html$/, '.md'), function(err) {
+                    if (/does not exist/.test(String(err))) {
+                        res.statusCode = 404;
+                    } else {
+                        res.statusCode = 500;
+                    }
+                    res.end(String(err));
+                });
+                return;
             } else {
-              res.statusCode = 500;
+                res.statusCode = 500;
+                res.end(String(err));
             }
-            res.end(String(err));
         });
+
+        function readAndStream(filename, errCb) {
+            var s = self.read(filename);
+            s.on('error', errCb);
+            res.setHeader('content-type', 'text/html');
+            self.markdownToHtml(s).pipe(res);
+        }
     }
     else if (m = routes.markdown.exec(req.url)) {
         var s = self.read(m[1]);
