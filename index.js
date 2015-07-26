@@ -325,7 +325,7 @@ Glog.prototype.list = function (opts, cb) {
         if (m = /^tag\s+(.+\.(?:markdown|md|html))/.exec(line)) {
             tag = {
               file : m[1],
-              href : '/blog/' + m[1].replace(/\.markdown$/, '.html')
+              href : filenameToHref(m[1])
             };
             if (commit) tag.commit = commit;
         }
@@ -463,7 +463,7 @@ Glog.prototype.rss = function (opts) {
         }
 
         first = false;
-        var href = doc.title.replace(/\W+/g, '_');
+        var href = filenameToHref(doc.file)
         var id = (site ? site : '').replace(/\/+$/, '') + '/' + href;
         rss.push([
             '<entry>',
@@ -498,6 +498,10 @@ Glog.prototype.markdownToHtml = function (s) {
       }
   }))
   return out;
+}
+
+function filenameToHref(filename) {
+  return '/blog/' + filename.replace(/\.markdown$/, '.html');
 }
 
 function compareTitle (x, y) {
