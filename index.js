@@ -323,7 +323,10 @@ Glog.prototype.list = function (opts, cb) {
         var line = buf.toString('utf8');
         var m;
         if (m = /^tag\s+(.+\.(?:markdown|md|html))/.exec(line)) {
-            tag = { file : m[1] };
+            tag = {
+              file : m[1],
+              href : '/blog/' + m[1].replace(/\.markdown$/, '.html')
+            };
             if (commit) tag.commit = commit;
         }
         else if (m = /^commit\s+(\S+)/.exec(line)) {
@@ -335,7 +338,6 @@ Glog.prototype.list = function (opts, cb) {
 
         if (tag.date && !tag.title && /\S/.test(line)) {
             tag.title = line;
-            tag.href = '/' + normalizeTitle(line);
             if (tag && commit) pushTag();
         }
         else if (m = /^Tagger:\s+(.+)/.exec(line)) {
