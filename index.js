@@ -304,7 +304,6 @@ Glog.prototype.list = function (opts, cb) {
         var tags = stdout.split('\n');
 
         var args = [ 'show' ]
-            .concat('--no-color')
             .concat(tags)
             .concat('--')
             .filter(Boolean)
